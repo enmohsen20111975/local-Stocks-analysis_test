@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Database (اختياري - uncomment if needed)
+# *.db
+# *.sqlite
+# *.sqlite3
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
+.cache/
+
+# Uploads & Downloads
+upload/
+download/
+
+# Large files
+*.zip
+*.tar.gz
+*.rar
+
+# Node.js (غير مستخدم)
+node_modules/
+.next/
+out/
+bun.lock
+package-lock.json
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+*.pyc

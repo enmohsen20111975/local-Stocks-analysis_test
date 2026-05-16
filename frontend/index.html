@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGX Data Engine - محرك بيانات البورصة المصرية</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">📊</span>
+                    <div class="logo-text">
+                        <h1>EGX Data Engine</h1>
+                        <p>محرك بيانات وتحليلات البورصة المصرية</p>
+                    </div>
+                </div>
+                <div class="header-status">
+                    <span class="status-badge" id="server-status">🟡 متصل...</span>
+                    <span class="last-update" id="last-update"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container">
+            <ul class="nav-tabs">
+                <li><a href="#" class="tab active" data-tab="dashboard">📊 لوحة التحكم</a></li>
+                <li><a href="#" class="tab" data-tab="stocks">📈 الأسهم</a></li>
+                <li><a href="#" class="tab" data-tab="recommendations">🎯 التوصيات</a></li>
+                <li><a href="#" class="tab" data-tab="crypto">🪙 العملات</a></li>
+                <li><a href="#" class="tab" data-tab="gold">💰 الذهب</a></li>
+                <li><a href="#" class="tab" data-tab="sources">🔌 المصادر</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stocks-count">-</div>
+                            <div class="stat-label">عدد الأسهم</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="history-count">-</div>
+                            <div class="stat-label">السجلات التاريخية</div>
+                        </div>
+                    </div>
+                    <div class="stat-card buy">
+                        <div class="stat-icon">🟢</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="buy-count">-</div>
+                            <div class="stat-label">توصيات شراء</div>
+                        </div>
+                    </div>
+                    <div class="stat-card sell">
+                        <div class="stat-icon">🔴</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="sell-count">-</div>
+                            <div class="stat-label">توصيات بيع</div>
+                        </div>
+                    </div>
+                    <div class="stat-card hold">
+                        <div class="stat-icon">🟡</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="hold-count">-</div>
+                            <div class="stat-label">توصيات انتظار</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Summary -->
+                <div class="section">
+                    <h2 class="section-title">📊 ملخص السوق</h2>
+                    <div class="market-sentiment" id="market-sentiment">
+                        <span class="sentiment-label">الاتجاه العام:</span>
+                        <span class="sentiment-value" id="sentiment-value">-</span>
+                    </div>
+                </div>
+
+                <!-- Top Recommendations -->
+                <div class="grid-2">
+                    <div class="section">
+                        <h2 class="section-title">🟢 أفضل فرص الشراء</h2>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>السهم</th>
+                                        <th>السعر</th>
+                                        <th>الهدف</th>
+                                        <th>الثقة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-buy-body">
+                                    <tr><td colspan="4" class="loading">جاري التحميل...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h2 class="section-title">🔴 أفضل فرص البيع</h2>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>السهم</th>
+                                        <th>السعر</th>
+                                        <th>الثقة</th>
+                                        <th>الاتجاه</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-sell-body">
+                                    <tr><td colspan="4" class="loading">جاري التحميل...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="section">
+                    <h2 class="section-title">⚙️ إجراءات</h2>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="refreshData()">
+                            <span class="btn-icon">🔄</span> تحديث البيانات
+                        </button>
+                        <button class="btn btn-success" onclick="syncStocks()">
+                            <span class="btn-icon">📡</span> مزامنة من الموقع
+                        </button>
+                        <button class="btn btn-warning" onclick="computeIndicators()">
+                            <span class="btn-icon">📊</span> حساب التحليلات
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stocks Tab -->
+            <section id="stocks" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">📈 قائمة الأسهم</h2>
+                        <div class="filters">
+                            <select id="sector-filter" onchange="filterStocks()">
+                                <option value="">كل القطاعات</option>
+                            </select>
+                            <input type="text" id="stock-search" placeholder="بحث..." onkeyup="searchStocks()">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الرمز</th>
+                                    <th>الاسم</th>
+                                    <th>السعر</th>
+                                    <th>التغير</th>
+                                    <th>القطاع</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stocks-body">
+                                <tr><td colspan="5" class="loading">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="stocks-pagination"></div>
+                </div>
+            </section>
+
+            <!-- Recommendations Tab -->
+            <section id="recommendations" class="tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">🎯 التوصيات</h2>
+                        <div class="filters">
+                            <select id="action-filter" onchange="filterRecommendations()">
+                                <option value="">كل التوصيات</option>
+                                <option value="BUY">🟢 شراء</option>
+                                <option value="SELL">🔴 بيع</option>
+                                <option value="HOLD">🟡 انتظار</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>السهم</th>
+                                    <th>السعر</th>
+                                    <th>الهدف 1</th>
+                                    <th>الهدف 2</th>
+                                    <th>الوقف</th>
+                                    <th>الثقة</th>
+                                    <th>التوصية</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recommendations-body">
+                                <tr><td colspan="7" class="loading">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Crypto Tab -->
+            <section id="crypto" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">🪙 العملات الرقمية</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>العملة</th>
+                                    <th>السعر (USD)</th>
+                                    <th>آخر تحديث</th>
+                                </tr>
+                            </thead>
+                            <tbody id="crypto-body">
+                                <tr><td colspan="3" class="loading">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gold Tab -->
+            <section id="gold" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">💰 أسعار الذهب</h2>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>العيار</th>
+                                    <th>السعر (جنيه/جرام)</th>
+                                    <th>التغير</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gold-body">
+                                <tr><td colspan="3" class="loading">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sources Tab -->
+            <section id="sources" class="tab-content">
+                <div class="section">
+                    <h2 class="section-title">🔌 مصادر البيانات</h2>
+                    <div class="sources-grid" id="sources-grid">
+                        <!-- Will be populated by JS -->
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>EGX Data Engine v2.0 | محرك بيانات البورصة المصرية</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

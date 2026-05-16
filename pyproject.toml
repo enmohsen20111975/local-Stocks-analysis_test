@@ -1,0 +1,35 @@
+[project]
+name = "egx-analysis-engine"
+version = "1.0.0"
+description = "Python Analysis Engine for EGX Stock Market - Self-Learning & AI-Powered"
+authors = [{name = "GLM Investment Team"}]
+requires-python = ">=3.10"
+readme = "README.md"
+
+[project.optional-dependencies]
+gpu = [
+    "torch>=2.1.0",
+    "tensorflow>=2.15.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "black>=24.1.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

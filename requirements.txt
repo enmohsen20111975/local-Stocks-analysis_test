@@ -1,0 +1,26 @@
+# EGX Data Engine - Requirements
+
+# Core
+fastapi>=0.100.0
+uvicorn>=0.23.0
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database
+sqlite3  # Built-in
+
+# HTTP Requests
+requests>=2.31.0
+aiohttp>=3.8.0
+
+# Logging
+loguru>=0.7.0
+
+# Validation
+pydantic>=2.0.0
+
+# Technical Analysis (optional)
+# ta-lib>=0.4.0
+# pandas-ta>=0.3.0

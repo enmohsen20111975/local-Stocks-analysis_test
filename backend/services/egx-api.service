@@ -1,0 +1,16 @@
+[Unit]
+Description=EGX Data API Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/egx-api
+ExecStart=/usr/bin/python3 /opt/egx-api/egx_api_service.py
+Restart=always
+RestartSec=10
+Environment=PORT=8010
+Environment=DATABASE_PATH=/opt/egx-api/data/egx_data.db
+
+[Install]
+WantedBy=multi-user.target
