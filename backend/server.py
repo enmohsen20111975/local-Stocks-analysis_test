@@ -88,7 +88,13 @@ class EGXAPIHandler(SimpleHTTPRequestHandler):
             self.json_response(self.get_market_summary())
             return
         
-        # === الملفات الثابتة ===
+# === الملفات الثابتة ===
+        
+        # favicon.ico - return empty (browser requests automatically)
+        if path == '/favicon.ico':
+            self.send_response(204)
+            self.end_headers()
+            return
         
         # الصفحة الرئيسية
         if path == '/' or path == '/index.html':
@@ -533,11 +539,11 @@ class EGXAPIHandler(SimpleHTTPRequestHandler):
 def main():
     """تشغيل السيرفر"""
     print("=" * 60)
-    print("🚀 EGX Data Engine v2.0")
+    print("[START] EGX Data Engine v2.0")
     print("=" * 60)
-    print(f"📊 Database: {DB_PATH}")
-    print(f"🌐 Frontend: {FRONTEND_PATH}")
-    print(f"🔗 URL: http://localhost:{PORT}")
+    print(f"[DB] Database: {DB_PATH}")
+    print(f"[FE] Frontend: {FRONTEND_PATH}")
+    print(f"[URL] http://localhost:{PORT}")
     print("=" * 60)
     print("Press Ctrl+C to stop")
     print()
@@ -549,7 +555,7 @@ def main():
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n⛔ Stopping server...")
+        print("\n[STOP] Stopping server...")
         server.shutdown()
 
 

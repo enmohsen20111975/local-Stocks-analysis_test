@@ -1,26 +1,10 @@
 # EGX Data Engine - Requirements
 
-# Core
-fastapi>=0.100.0
-uvicorn>=0.23.0
+# Core for server.py - uses built-in modules only
+# No external dependencies required for basic HTTP server
 
-# Data Processing
-pandas>=2.0.0
+# Data Processing (for data_engine.py and analysis services)
 numpy>=1.24.0
-
-# Database
-sqlite3  # Built-in
-
-# HTTP Requests
-requests>=2.31.0
-aiohttp>=3.8.0
-
-# Logging
+pandas>=2.0.0
 loguru>=0.7.0
-
-# Validation
-pydantic>=2.0.0
-
-# Technical Analysis (optional)
-# ta-lib>=0.4.0
-# pandas-ta>=0.3.0
+requests>=2.31.0
