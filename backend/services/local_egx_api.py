@@ -316,19 +316,17 @@ def generate_prediction(prices: List[float], symbol: str) -> Dict:
 def get_price_history_from_db(ticker: str, days: int = 365) -> List[Dict]:
     """Get historical prices from local database.
     
-    Uses stock_price_history table joined with stocks table via stock_id.
+    Uses DailyPrice table with symbol column directly.
     """
     conn = get_db()
     cursor = conn.cursor()
     
-    # Join stock_price_history with stocks to get data by ticker
+    # Use DailyPrice table directly with symbol
     cursor.execute('''
-        SELECT sph.date, sph.open_price as open, sph.high_price as high, 
-               sph.low_price as low, sph.close_price as close, sph.volume 
-        FROM stock_price_history sph
-        JOIN stocks s ON sph.stock_id = s.id
-        WHERE s.ticker = ? 
-        ORDER BY sph.date ASC
+        SELECT date, open, high, low, close, volume 
+        FROM DailyPrice
+        WHERE symbol = ? 
+        ORDER BY date ASC
         LIMIT ?
     ''', (ticker.upper(), days))
     
@@ -369,8 +367,12 @@ def health_check():
         cursor.execute("SELECT COUNT(*) FROM stocks")
         stock_count = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM stock_price_history")
-        history_count = cursor.fetchone()[0]
+        # Use DailyPrice instead of stock_price_history
+        try:
+            cursor.execute("SELECT COUNT(*) FROM DailyPrice")
+            history_count = cursor.fetchone()[0]
+        except:
+            history_count = 0
         
         cursor.execute("SELECT COUNT(*) FROM stocks WHERE current_price IS NOT NULL")
         priced_count = cursor.fetchone()[0]
@@ -718,6 +720,230 @@ def data_export():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ============================================================================
+# ITERATIVE LEARNING ENDPOINTS
+# ============================================================================
+
+@app.route('/api/learning/status', methods=['GET'])
+def learning_status():
+    """Get iterative learning status."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Count simulated trades
+        cursor.execute('SELECT COUNT(*) FROM simulated_trades')
+        total_trades = cursor.fetchone()[0]
+        
+        # Count winning trades
+        cursor.execute('SELECT COUNT(*) FROM simulated_trades WHERE profit_loss > 0')
+        winning_trades = cursor.fetchone()[0]
+        
+        # Count by strategy
+        cursor.execute('''
+            SELECT strategy, COUNT(*) as count, 
+                   SUM(CASE WHEN profit_loss > 0 THEN 1 ELSE 0 END) as wins
+            FROM simulated_trades
+            GROUP BY strategy
+            ORDER BY count DESC
+        ''')
+        by_strategy = [dict(row) for row in cursor.fetchall()]
+        
+        # Get optimized symbols count
+        cursor.execute('SELECT COUNT(DISTINCT symbol) FROM optimized_parameters')
+        optimized_symbols = cursor.fetchone()[0]
+        
+        # Get latest session
+        cursor.execute('''
+            SELECT id, start_time, end_time, stocks_processed, total_trades,
+                   winning_trades, losing_trades, win_rate, profit_factor
+            FROM learning_sessions
+            ORDER BY start_time DESC
+            LIMIT 1
+        ''')
+        row = cursor.fetchone()
+        latest_session = dict(row) if row else None
+        
+        win_rate = round(winning_trades / total_trades * 100, 2) if total_trades > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "status": {
+                "total_trades": total_trades,
+                "winning_trades": winning_trades,
+                "losing_trades": total_trades - winning_trades,
+                "win_rate": win_rate,
+                "by_strategy": by_strategy,
+                "optimized_symbols": optimized_symbols,
+                "latest_session": latest_session
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/learning/optimized/<symbol>', methods=['GET'])
+def get_optimized_params(symbol):
+    """Get optimized parameters for a symbol from learning."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT symbol, strategy, optimal_target, optimal_stop_loss,
+                   win_rate, total_trades, last_updated
+            FROM optimized_parameters
+            WHERE symbol = ?
+            ORDER BY win_rate DESC
+            LIMIT 1
+        ''', (symbol.upper(),))
+        
+        row = cursor.fetchone()
+        
+        if row:
+            return jsonify({
+                "success": True,
+                "data": dict(row)
+            })
+        
+        return jsonify({
+            "success": False,
+            "error": f"No optimized parameters found for {symbol}"
+        }), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/learning/trades/<symbol>', methods=['GET'])
+def get_simulated_trades(symbol):
+    """Get simulated trades for a symbol."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        limit = request.args.get('limit', 100, type=int)
+        strategy = request.args.get('strategy', None)
+        
+        if strategy:
+            cursor.execute('''
+                SELECT * FROM simulated_trades
+                WHERE symbol = ? AND strategy = ?
+                ORDER BY entry_date DESC
+                LIMIT ?
+            ''', (symbol.upper(), strategy, limit))
+        else:
+            cursor.execute('''
+                SELECT * FROM simulated_trades
+                WHERE symbol = ?
+                ORDER BY entry_date DESC
+                LIMIT ?
+            ''', (symbol.upper(), limit))
+        
+        trades = [dict(row) for row in cursor.fetchall()]
+        
+        return jsonify({
+            "success": True,
+            "symbol": symbol.upper(),
+            "count": len(trades),
+            "trades": trades
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/learning/sessions', methods=['GET'])
+def get_learning_sessions():
+    """Get all learning sessions."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, start_time, end_time, stocks_processed, total_trades,
+                   winning_trades, losing_trades, win_rate, profit_factor
+            FROM learning_sessions
+            ORDER BY start_time DESC
+            LIMIT 20
+        ''')
+        
+        sessions = [dict(row) for row in cursor.fetchall()]
+        
+        return jsonify({
+            "success": True,
+            "count": len(sessions),
+            "sessions": sessions
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/learning/predict/<symbol>', methods=['GET'])
+def predict_with_learning(symbol):
+    """Get prediction enhanced with learning parameters."""
+    try:
+        symbol = symbol.upper()
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Get historical data
+        rows = get_price_history_from_db(symbol, 365)
+        
+        if not rows or len(rows) < 50:
+            return jsonify({
+                "success": False,
+                "error": f"Insufficient data for {symbol}. Need at least 50 data points."
+            }), 404
+        
+        closes = [r['close'] for r in rows]
+        
+        # Get optimized parameters if available
+        cursor.execute('''
+            SELECT strategy, optimal_target, optimal_stop_loss, win_rate
+            FROM optimized_parameters
+            WHERE symbol = ?
+            ORDER BY win_rate DESC
+            LIMIT 1
+        ''', (symbol,))
+        
+        optimized = cursor.fetchone()
+        
+        # Generate base prediction
+        prediction = generate_prediction(closes, symbol)
+        
+        # Enhance with learning data
+        if optimized:
+            prediction['optimized'] = {
+                'strategy': optimized['strategy'],
+                'optimal_target': optimized['optimal_target'],
+                'optimal_stop_loss': optimized['optimal_stop_loss'],
+                'historical_win_rate': optimized['win_rate']
+            }
+            
+            # Adjust confidence based on historical performance
+            if optimized['win_rate'] > 50:
+                prediction['confidence'] = min(prediction['confidence'] + 5, 95)
+            elif optimized['win_rate'] < 40:
+                prediction['confidence'] = max(prediction['confidence'] - 5, 50)
+        
+        # Get recent simulated trades performance
+        cursor.execute('''
+            SELECT COUNT(*) as total,
+                   SUM(CASE WHEN profit_loss > 0 THEN 1 ELSE 0 END) as wins
+            FROM simulated_trades
+            WHERE symbol = ?
+        ''', (symbol,))
+        
+        trade_stats = cursor.fetchone()
+        if trade_stats and trade_stats['total'] > 0:
+            prediction['learning_stats'] = {
+                'total_simulated_trades': trade_stats['total'],
+                'winning_trades': trade_stats['wins'],
+                'simulated_win_rate': round(trade_stats['wins'] / trade_stats['total'] * 100, 2)
+            }
+        
+        return jsonify({
+            "success": True,
+            "data": prediction
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# ============================================================================
 # MAIN
 # ============================================================================
 
@@ -729,5 +955,6 @@ if __name__ == '__main__':
     print(f"Port: {PORT}")
     print(f"Data Sources: {DATA_SOURCES}")
     print(f"{'='*60}\n")
-    
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+
+    # Use Flask with threading
+    app.run(host='0.0.0.0', port=PORT, debug=False, threaded=True, use_reloader=False)

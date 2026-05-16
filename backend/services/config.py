@@ -25,23 +25,19 @@ from pathlib import Path
 # DATABASE CONFIGURATION
 # ============================================================================
 
-# Determine if running locally or on VPS
-IS_LOCAL = os.environ.get('IS_LOCAL', 'true').lower() == 'true'
-
 # Possible database locations (in order of priority)
 _DB_SEARCH_PATHS = [
     # Environment variable (highest priority)
     os.environ.get('DATABASE_PATH', ''),
-    # Local development - Data Engine project location (PRIMARY for local)
-    os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'website_snapshot_latest.json'),
-    # Local SQLite database
-    os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'egx_investment.db'),
-    # Local db directory
-    os.path.join(os.path.dirname(__file__), '..', '..', 'db', 'egx_investment.db'),
-    # VPS - Next.js project location (for production)
+    # VPS - Next.js project location (PRIMARY for production)
     '/root/GLMinvestment/db/egx_investment.db',
-    # Fallback paths
-    os.path.join(os.path.dirname(__file__), 'data', 'egx_investment.db'),
+    # Development environment
+    '/home/z/my-project/GLMinvestment/db/egx_investment.db',
+    # Relative path (for local development)
+    os.path.join(os.path.dirname(__file__), '..', 'db', 'egx_investment.db'),
+    # Old paths (deprecated - will be removed)
+    '/root/egxpy_service/data/egx_investment.db',
+    '/home/z/invest/app/db/egx_investment.db',
 ]
 
 
@@ -153,21 +149,6 @@ def verify_database() -> dict:
         'tables': []
     }
     
-    # Check for JSON snapshot file
-    if DATABASE_PATH.endswith('.json'):
-        result['is_json'] = True
-        if result['exists']:
-            try:
-                import json
-                with open(DATABASE_PATH, 'r') as f:
-                    data = json.load(f)
-                result['connected'] = True
-                result['stocks_count'] = len(data.get('stocks', []))
-                result['json_keys'] = list(data.keys())
-            except Exception as e:
-                result['error'] = str(e)
-        return result
-    
     if not result['exists']:
         result['error'] = 'Database file not found'
         return result
@@ -180,23 +161,13 @@ def verify_database() -> dict:
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             result['tables'] = [row[0] for row in cursor.fetchall()]
             
-            # Get stocks count (try both table names)
-            for table_name in ['stocks', 'stock']:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-                    result['stocks_count'] = cursor.fetchone()[0]
-                    break
-                except:
-                    pass
+            # Get stocks count
+            cursor.execute("SELECT COUNT(*) FROM stocks")
+            result['stocks_count'] = cursor.fetchone()[0]
             
-            # Get history count (try both table names)
-            for table_name in ['stock_price_history', 'price_history']:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-                    result['history_count'] = cursor.fetchone()[0]
-                    break
-                except:
-                    pass
+            # Get history count
+            cursor.execute("SELECT COUNT(*) FROM stock_price_history")
+            result['history_count'] = cursor.fetchone()[0]
             
             result['connected'] = True
             
